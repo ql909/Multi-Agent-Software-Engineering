@@ -1,0 +1,30 @@
+# 1.	Task Request by Robotic Arm Agent
+def request_task():
+    publish_to_bus(message_type="TaskRequest", content={"agent_type": "RoboticArm", "status": "Ready"})
+    task = subscribe_to_bus(message_type="TaskAssignment")
+    return task
+
+# 2.	Task Assignment by AMS
+def assign_task(task_requests):
+    for request in task_requests:
+        if request.content["agent_type"] == "RoboticArm" and system_has_pending_tasks():
+            task = get_next_task_for("RoboticArm")
+            publish_to_bus(message_type="TaskAssignment", content={"task": task, "recipient": request.sender})
+
+# 3.	Welding Process Execution
+def execute_welding(joint_details):
+    if setup_for_welding(joint_details):
+        publish_to_bus(message_type="StatusUpdate", content={"status": "Welding", "details": joint_details})
+        perform_welding(joint_details)
+        publish_to_bus(message_type="TaskCompleted", content={"status": "Success", "details": joint_details})
+    else:
+        publish_to_bus(message_type="Error", content={"status": "SetupFailed", "details": joint_details})
+
+# 4.	Moving Assembled Frame
+def move_assembled_frame(frame_id):
+    if grab_frame(frame_id) and verify_safety_conditions():
+        publish_to_bus(message_type="StatusUpdate", content={"status": "Moving", "frame_id": frame_id})
+        transport_to_next_station(frame_id)
+        publish_to_bus(message_type="TaskCompleted", content={"status": "FrameMoved", "frame_id": frame_id})
+    else:
+        publish_to_bus(message_type="Error", content={"status": "MoveFailed", "frame_id": frame_id})
